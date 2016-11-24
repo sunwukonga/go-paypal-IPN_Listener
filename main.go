@@ -55,11 +55,12 @@ func ipnHandler(w http.ResponseWriter, r *http.Request) {
 	// Get Content-Type of request to be parroted back to paypal
 	contentType := r.Header.Get("Content-Type")
 	// Read the raw POST body
-	body, err := ioutil.ReadAll(r.Body)
+	body, _ := ioutil.ReadAll(r.Body)
 	// Prepend POST body with required field
 	body = append([]byte("cmd=_notify-validate&"), body...)
 	// Make POST request to paypal
-	req, err := http.NewRequest(http.MethodPost, paypalURL, bytes.NewBuffer(body))
+	resp, _ := http.Post(paypalURL, contentType, bytes.NewBuffer(body))
+	/*req, err := http.NewRequest(http.MethodPost, paypalURL, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", contentType)
 
 	client := &http.Client{}
@@ -68,7 +69,7 @@ func ipnHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	defer resp.Body.Close()
-
-	body, err = ioutil.ReadAll(resp.Body)
+	*/
+	body, _ = ioutil.ReadAll(resp.Body)
 	log.Printf("Response: %v", string(body))
 }

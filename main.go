@@ -25,7 +25,6 @@ func main() {
 
 func ipnHandler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("ipnHandler called.")
 	// Switch for production and live
 	isProduction := false
 
@@ -36,13 +35,13 @@ func ipnHandler(w http.ResponseWriter, r *http.Request) {
 	if isProduction {
 		paypalURL = urlLive
 	}
-	fmt.Println("URL to return to is: %v", paypalURL)
 
 	// Verify that the POST HTTP Request method was used.
 	if r.Method != http.MethodPost {
 		http.Error(w, fmt.Sprintf("No route for %v", r.Method), http.StatusNotFound)
 		return
 	}
+
 	// *********************************************************
 	// HANDSHAKE STEP 1 -- Write back an empty HTTP 200 response
 	// *********************************************************
@@ -60,16 +59,21 @@ func ipnHandler(w http.ResponseWriter, r *http.Request) {
 	body = append([]byte("cmd=_notify-validate&"), body...)
 	// Make POST request to paypal
 	resp, _ := http.Post(paypalURL, contentType, bytes.NewBuffer(body))
-	/*req, err := http.NewRequest(http.MethodPost, paypalURL, bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", contentType)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
+	// *********************************************************
+	// HANDSHAKE STEP 3 -- Read response for VERIFIED or INVALID
+	// *********************************************************
+	verifyStatus, _ := ioutil.ReadAll(resp.Body)
+
+	// *********************************************************
+	// Test for VERIFIED
+	// *********************************************************
+	if string(verifyStatus) != "VERIFIED" {
+		log.Printf("Response: %v", string(verifyStatus))
+		log.Printf("This indicates that an attempt was made to spoof this interface, or we have a bug.")
+		return
 	}
-	defer resp.Body.Close()
-	*/
-	body, _ = ioutil.ReadAll(resp.Body)
-	log.Printf("Response: %v", string(body))
+	// We can now assume that the POSTed information in `body` is VERIFIED to be from Paypal.
+	log.Printf("Response: %v", string(verifyStatus))
+
 }

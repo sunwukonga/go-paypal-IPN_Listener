@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 func main() {
@@ -19,7 +20,9 @@ func main() {
 		}
 		fmt.Fprintf(w, "Welcome to the home page, nothing to see here.")
 	})
-	fmt.Println("Router initiated.")
+	log.Println("Router initiated.")
+	// The following won't work unless (under linux) you set the appropriate capability for the executable.
+	// `sudo setcap CAP_NET_BIND_SERVICE+ep ./main`
 	log.Fatal(http.ListenAndServe(":80", mux))
 }
 
@@ -37,6 +40,7 @@ func ipnHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify that the POST HTTP Request method was used.
+	// A more sophisticated router would have handled this before calling this handler.
 	if r.Method != http.MethodPost {
 		http.Error(w, fmt.Sprintf("No route for %v", r.Method), http.StatusNotFound)
 		return
@@ -70,10 +74,15 @@ func ipnHandler(w http.ResponseWriter, r *http.Request) {
 	// *********************************************************
 	if string(verifyStatus) != "VERIFIED" {
 		log.Printf("Response: %v", string(verifyStatus))
-		log.Printf("This indicates that an attempt was made to spoof this interface, or we have a bug.")
+		log.Println("This indicates that an attempt was made to spoof this interface, or we have a bug.")
 		return
 	}
 	// We can now assume that the POSTed information in `body` is VERIFIED to be from Paypal.
 	log.Printf("Response: %v", string(verifyStatus))
+
+	values, _ := url.ParseQuery(string(body))
+	for i, v := range values {
+		fmt.Println(i, v)
+	}
 
 }
